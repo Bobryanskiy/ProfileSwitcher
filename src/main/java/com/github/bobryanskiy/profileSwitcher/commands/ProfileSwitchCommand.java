@@ -48,7 +48,7 @@ public class ProfileSwitchCommand implements BasicCommand {
 
             ProfileSwitcher.getInstance().getConfig().set(executor.getName().toLowerCase() + "." + current + ".isFlying", executor.isFlying());
             ProfileSwitcher.getInstance().getConfig().set(executor.getName().toLowerCase() + "." + current + ".gamemode", executor.getGameMode().name());
-            ProfileSwitcher.getInstance().getConfig().set(executor.getName().toLowerCase() + "." + current + ".world", executor.getLocation().serialize().toString());
+            ProfileSwitcher.getInstance().getConfig().set(executor.getName().toLowerCase() + "." + current + ".location", executor.getLocation().serialize().toString());
 
             if (current.equals("/first/")) current = "/second/";
             else current = "/first/";
@@ -72,7 +72,7 @@ public class ProfileSwitchCommand implements BasicCommand {
 
             String gm = ProfileSwitcher.getInstance().getConfig().getString(executor.getName().toLowerCase() + "." + current + ".gamemode");
             if (gm != null) executor.setGameMode(GameMode.valueOf(gm));
-            String w = ProfileSwitcher.getInstance().getConfig().getString(executor.getName().toLowerCase() + "." + current + ".world");
+            String w = ProfileSwitcher.getInstance().getConfig().getString(executor.getName().toLowerCase() + "." + current + ".location");
             if (w != null) {
                 String jsonInput = w.replace("=", "\":\"")
                         .replace(", ", "\", \"")
@@ -95,7 +95,7 @@ public class ProfileSwitchCommand implements BasicCommand {
 
         try {
             if (file1.exists()) Files.copy(Paths.get(file1.toURI()), Paths.get(file1To.toURI()), StandardCopyOption.REPLACE_EXISTING);
-            if (file2.exists()) Files.move(Paths.get(file2.toURI()), Paths.get(file2To.toURI()), StandardCopyOption.REPLACE_EXISTING);
+            if (file2.exists()) Files.copy(Paths.get(file2.toURI()), Paths.get(file2To.toURI()), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
