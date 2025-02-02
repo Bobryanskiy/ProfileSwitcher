@@ -1,6 +1,8 @@
 package com.github.bobryanskiy.profileSwitcher.commands;
 
 import com.github.bobryanskiy.profileSwitcher.ProfileSwitcher;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import io.papermc.paper.command.brigadier.BasicCommand;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import org.bukkit.Bukkit;
@@ -12,6 +14,7 @@ import org.bukkit.entity.Player;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
@@ -30,35 +33,37 @@ public class ProfileSwitchCommand implements BasicCommand {
     public void execute(CommandSourceStack commandSourceStack, String[] strings) {
         if (commandSourceStack.getExecutor() instanceof Player executor) {
             executor.saveData();
-            String to = "/first/";
+            String current = "/first/";
             String string = ProfileSwitcher.getInstance().getConfig().getString(executor.getName().toLowerCase() + ".current");
             if (string != null) {
-                to = string;
+                current = string;
             }
+            executor.sendRichMessage("Вы на " + current  + " профиле");
             File file1 = new File(playerdataDir, executor.getUniqueId() + ".dat");
             File file2 = new File(playerdataDir, executor.getUniqueId() + ".dat_old");
 
 
-            File file1To = new File(pluginDir +  "/" + executor.getName() + to, executor.getUniqueId() + ".dat");
-            File file2To = new File(pluginDir + "/" + executor.getName() + to, executor.getUniqueId() + ".dat_old");
+            File file1To = new File(pluginDir +  "/" + executor.getName() + current, executor.getUniqueId() + ".dat");
+            File file2To = new File(pluginDir + "/" + executor.getName() + current, executor.getUniqueId() + ".dat_old");
 
             if (string == null) {
                 copyFiles(file1, file2, file1To, file2To);
             }
             else moveFiles(file1, file2, file1To, file2To);
 
-            ProfileSwitcher.getInstance().getConfig().set(executor.getName().toLowerCase() + ".current", to);
-            ProfileSwitcher.getInstance().getConfig().set(executor.getName().toLowerCase() + "." + to + ".isFlying", executor.isFlying());
-            ProfileSwitcher.getInstance().getConfig().set(executor.getName().toLowerCase() + "." + to + ".gamemode", executor.getGameMode().name());
-            ProfileSwitcher.getInstance().getConfig().set(executor.getName().toLowerCase() + "." + to + ".location", Objects.requireNonNull(executor.getPlayer()).getLocation().serialize().toString());
+            ProfileSwitcher.getInstance().getConfig().set(executor.getName().toLowerCase() + "." + current + ".isFlying", executor.isFlying());
+            ProfileSwitcher.getInstance().getConfig().set(executor.getName().toLowerCase() + "." + current + ".gamemode", executor.getGameMode().name());
+            ProfileSwitcher.getInstance().getConfig().set(executor.getName().toLowerCase() + "." + current + ".world", executor.getLocation().serialize().toString());
+
+            if (current.equals("/first/")) current = "/second/";
+            else current = "/first/";
+
+            ProfileSwitcher.getInstance().getConfig().set(executor.getName().toLowerCase() + ".current", current);
             ProfileSwitcher.getInstance().saveConfig();
 
-            if (to.equals("/first/")) to = "/second/";
-            else to = "/first/";
-
             if (string != null) {
-                file1 = new File(pluginDir +  "/" + executor.getName() + to, executor.getUniqueId() + ".dat");
-                file2 = new File(pluginDir + "/" + executor.getName() + to, executor.getUniqueId() + ".dat_old");
+                file1 = new File(pluginDir +  "/" + executor.getName() + current, executor.getUniqueId() + ".dat");
+                file2 = new File(pluginDir + "/" + executor.getName() + current, executor.getUniqueId() + ".dat_old");
 
                 file1To = new File(playerdataDir, executor.getUniqueId() + ".dat");
                 file2To = new File(playerdataDir, executor.getUniqueId() + ".dat_old");
@@ -68,17 +73,20 @@ public class ProfileSwitchCommand implements BasicCommand {
 
             executor.loadData();
 
-            String gm = ProfileSwitcher.getInstance().getConfig().getString(executor.getName().toLowerCase() + "." + to + ".gamemode");
+            String gm = ProfileSwitcher.getInstance().getConfig().getString(executor.getName().toLowerCase() + "." + current + ".gamemode");
             if (gm != null) executor.setGameMode(GameMode.valueOf(gm));
-            String w = ProfileSwitcher.getInstance().getConfig().getString(executor.getName().toLowerCase() + "." + to + ".location");
+            String w = ProfileSwitcher.getInstance().getConfig().getString(executor.getName().toLowerCase() + "." + current + ".world");
             if (w != null) {
-                w = w.substring(1, w.length() - 1);
-                Map<String, Object> map = Arrays.stream(w.split(","))
-                        .map(entry -> entry.split("="))
-                        .collect(Collectors.toMap(entry -> entry[0], entry -> entry[1]));
+                String jsonInput = w.replace("=", "\":\"")
+                        .replace(", ", "\", \"")
+                        .replace("{", "{\"")
+                        .replace("}", "\"}");
+                Gson gson = new Gson();
+                Type type = new TypeToken<Map<String, Object>>() {}.getType();
+                Map<String, Object> map = gson.fromJson(jsonInput, type);
                 executor.teleportAsync(Location.deserialize(map));
             }
-            String isF = ProfileSwitcher.getInstance().getConfig().getString(executor.getName().toLowerCase() + "." + to + ".isFlying");
+            String isF = ProfileSwitcher.getInstance().getConfig().getString(executor.getName().toLowerCase() + "." + current + ".isFlying");
             if (isF != null) executor.setFlying(Boolean.parseBoolean(isF));
         }
     }
