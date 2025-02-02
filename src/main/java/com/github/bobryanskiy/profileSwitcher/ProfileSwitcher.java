@@ -2,14 +2,8 @@ package com.github.bobryanskiy.profileSwitcher;
 
 import com.github.bobryanskiy.profileSwitcher.commands.ProfileSwitchCommand;
 import io.papermc.paper.plugin.lifecycle.event.types.LifecycleEvents;
-import net.kyori.adventure.text.Component;
-import org.bukkit.Bukkit;
-import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.java.JavaPlugin;
-
-import java.io.File;
 
 public final class ProfileSwitcher extends JavaPlugin implements Listener {
 
@@ -24,13 +18,6 @@ public final class ProfileSwitcher extends JavaPlugin implements Listener {
         this.getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS,
                 event -> event.registrar().register("switchme", new ProfileSwitchCommand())
         );
-
-        Bukkit.getPluginManager().registerEvents(this, this);
-    }
-
-    @EventHandler
-    public void onPlayerJoin(PlayerJoinEvent event) {
-        event.getPlayer().sendMessage(Component.text("Hello222, " + event.getPlayer().getName() + "!" + Bukkit.getWorlds().getFirst().getName()));
     }
 
     @Override

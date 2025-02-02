@@ -8,7 +8,6 @@ import io.papermc.paper.command.brigadier.CommandSourceStack;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
-import org.bukkit.World;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
@@ -18,10 +17,7 @@ import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.Arrays;
 import java.util.Map;
-import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class ProfileSwitchCommand implements BasicCommand {
 
@@ -38,7 +34,6 @@ public class ProfileSwitchCommand implements BasicCommand {
             if (string != null) {
                 current = string;
             }
-            executor.sendRichMessage("Вы на " + current  + " профиле");
             File file1 = new File(playerdataDir, executor.getUniqueId() + ".dat");
             File file2 = new File(playerdataDir, executor.getUniqueId() + ".dat_old");
 
@@ -57,6 +52,8 @@ public class ProfileSwitchCommand implements BasicCommand {
 
             if (current.equals("/first/")) current = "/second/";
             else current = "/first/";
+
+            executor.sendRichMessage("Вы на " + current  + " профиле");
 
             ProfileSwitcher.getInstance().getConfig().set(executor.getName().toLowerCase() + ".current", current);
             ProfileSwitcher.getInstance().saveConfig();
@@ -97,7 +94,7 @@ public class ProfileSwitchCommand implements BasicCommand {
         }
 
         try {
-            Files.copy(Paths.get(file1.toURI()), Paths.get(file1To.toURI()), StandardCopyOption.REPLACE_EXISTING);
+            if (file1.exists()) Files.copy(Paths.get(file1.toURI()), Paths.get(file1To.toURI()), StandardCopyOption.REPLACE_EXISTING);
             if (file2.exists()) Files.move(Paths.get(file2.toURI()), Paths.get(file2To.toURI()), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -110,7 +107,7 @@ public class ProfileSwitchCommand implements BasicCommand {
         }
 
         try {
-            Files.move(Paths.get(file1.toURI()), Paths.get(file1To.toURI()), StandardCopyOption.REPLACE_EXISTING);
+            if (file1.exists()) Files.move(Paths.get(file1.toURI()), Paths.get(file1To.toURI()), StandardCopyOption.REPLACE_EXISTING);
             if (file2.exists()) Files.move(Paths.get(file2.toURI()), Paths.get(file2To.toURI()), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             throw new RuntimeException(e);
