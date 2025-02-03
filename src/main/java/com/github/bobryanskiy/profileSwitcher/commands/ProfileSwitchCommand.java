@@ -10,6 +10,7 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.potion.PotionEffect;
 
 import java.io.File;
 import java.io.IOException;
@@ -17,7 +18,7 @@ import java.lang.reflect.Type;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.Map;
+import java.util.*;
 
 public class ProfileSwitchCommand implements BasicCommand {
 
@@ -49,6 +50,9 @@ public class ProfileSwitchCommand implements BasicCommand {
             ProfileSwitcher.getInstance().getConfig().set(executor.getName().toLowerCase() + "." + current + ".isFlying", executor.isFlying());
             ProfileSwitcher.getInstance().getConfig().set(executor.getName().toLowerCase() + "." + current + ".gamemode", executor.getGameMode().name());
             ProfileSwitcher.getInstance().getConfig().set(executor.getName().toLowerCase() + "." + current + ".location", executor.getLocation().serialize().toString());
+            StringBuilder stringBuilder = new StringBuilder();
+            executor.getActivePotionEffects().forEach(potionEffect -> stringBuilder.append(potionEffect.serialize()).append("|"));
+            ProfileSwitcher.getInstance().getConfig().set(executor.getName().toLowerCase() + "." + current + ".effects", stringBuilder.toString());
 
             if (current.equals("/first/")) current = "/second/";
             else current = "/first/";
@@ -70,22 +74,60 @@ public class ProfileSwitchCommand implements BasicCommand {
 
             executor.loadData();
 
+            String ef = ProfileSwitcher.getInstance().getConfig().getString(executor.getName().toLowerCase() + "." + current + ".effects");
+            executor.clearActivePotionEffects();
+            if (ef != null && !ef.isEmpty()) {
+                String[] effectsArray = (ef.substring(0, ef.length() -1)).split("\\|");
+                for (String effect : effectsArray) {
+                    PotionEffect potionEffect = new PotionEffect(deserializeEffect(effect));
+                    executor.addPotionEffect(potionEffect);
+                }
+            }
+
             String gm = ProfileSwitcher.getInstance().getConfig().getString(executor.getName().toLowerCase() + "." + current + ".gamemode");
             if (gm != null) executor.setGameMode(GameMode.valueOf(gm));
             String w = ProfileSwitcher.getInstance().getConfig().getString(executor.getName().toLowerCase() + "." + current + ".location");
             if (w != null) {
-                String jsonInput = w.replace("=", "\":\"")
-                        .replace(", ", "\", \"")
-                        .replace("{", "{\"")
-                        .replace("}", "\"}");
-                Gson gson = new Gson();
-                Type type = new TypeToken<Map<String, Object>>() {}.getType();
-                Map<String, Object> map = gson.fromJson(jsonInput, type);
+                Map<String, Object> map = getStringObjectMap(w);
                 executor.teleportAsync(Location.deserialize(map));
             }
             String isF = ProfileSwitcher.getInstance().getConfig().getString(executor.getName().toLowerCase() + "." + current + ".isFlying");
             if (isF != null) executor.setFlying(Boolean.parseBoolean(isF));
         }
+    }
+
+    private Map<String, Object> deserializeEffect(String serializedString) {
+        Map<String, Object> deserializedMap = new HashMap<>();
+        String[] pairs = serializedString.replace("{", "").replace("}", "").split(",");
+
+        for (String pair : pairs) {
+            String[] seperatedPairs = pair.split("=");
+
+            String key = seperatedPairs[0].trim();
+            String value = seperatedPairs[1].trim();
+
+            switch (key) {
+                case "effect":
+                    deserializedMap.put(key, value);
+                    break;
+                case "duration", "amplifier":
+                    deserializedMap.put(key, Integer.parseInt(value));
+                    break;
+                default:
+                    deserializedMap.put(key, Boolean.parseBoolean(value));
+            }
+        }
+        return deserializedMap;
+    }
+
+    private static Map<String, Object> getStringObjectMap(String str) {
+        String jsonInput = str.replace("=", "\":\"")
+                .replace(", ", "\", \"")
+                .replace("{", "{\"")
+                .replace("}", "\"}");
+        Gson gson = new Gson();
+        Type type = new TypeToken<Map<String, Object>>() {}.getType();
+        return gson.fromJson(jsonInput, type);
     }
 
     private void copyFiles(File file1, File file2, File file1To, File file2To) {
